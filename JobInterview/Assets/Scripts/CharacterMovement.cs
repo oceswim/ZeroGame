@@ -10,13 +10,13 @@ public class CharacterMovement : MonoBehaviour
     public static bool startedGame;
     public Animator theCharAnimator;
     public NavMeshAgent theNavMesh;
-
+    private bool menuOn;
     RaycastHit hit;
     Vector3 destination;
     private bool walking;
     void Start()
     {
-        walking = false;
+        walking = menuOn=false;
         destination = transform.position;
         startedGame = true;
         
@@ -31,7 +31,8 @@ public class CharacterMovement : MonoBehaviour
             CursorPrefab.GetComponent<MeshRenderer>().material.SetColor("_Color", Color.green);
             startedGame = false;
             }
-
+        if (!menuOn)
+        {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out hit))
             {
@@ -51,28 +52,29 @@ public class CharacterMovement : MonoBehaviour
                         {
                             CursorPrefab.GetComponent<MeshRenderer>().material.SetColor("_Color", Color.green);
                         }
-                    if (Input.GetMouseButtonDown(0))
-                    {
-                        Debug.Log("CLICK");
-                        destination = hit.transform.position;
-                        Debug.Log(destination);
-                        theCharAnimator.SetBool("isWalking", true);
-                        theNavMesh.destination = destination;
-                        walking = true;
-                        
-                    }
-                    if (!theNavMesh.pathPending && theNavMesh.pathStatus == NavMeshPathStatus.PathComplete && theNavMesh.remainingDistance == 0 && walking ==true)
-                    {
-                        Debug.Log("YO");
-                        theCharAnimator.SetBool("isWalking", false);
-                        walking = false;
-                    }
+                        if (Input.GetMouseButtonDown(0))
+                        {
+                            Debug.Log("CLICK");
+                            destination = hit.transform.position;
+                            Debug.Log(destination);
+                            theCharAnimator.SetBool("isWalking", true);
+                            theNavMesh.destination = destination;
+                            walking = true;
+
+                        }
+                        if (!theNavMesh.pathPending && theNavMesh.pathStatus == NavMeshPathStatus.PathComplete && theNavMesh.remainingDistance == 0 && walking == true)
+                        {
+                            Debug.Log("YO");
+                            theCharAnimator.SetBool("isWalking", false);
+                            walking = false;
+                        }
 
 
+                    }
                 }
-            }
                 // Do something with the object that was hit by the raycast.
             }
+        }
    
 
     }
@@ -80,12 +82,13 @@ public class CharacterMovement : MonoBehaviour
     {
         if (other.transform.name.Equals("Zone1"))
         {
-
+            menuOn = true;
             GameManager.instance.Personnalisation();
         }
         else if(other.transform.name.Equals("Zone2"))
         {
             GameManager.instance.RecipeResearch();
+            menuOn = true;
         }
     }
 
