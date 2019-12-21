@@ -12,7 +12,7 @@ public class handleInputs : MonoBehaviour
     private string dishInput;
    
     // Start is called before the first frame update
-    void Start()
+    void OnEnable()
     {
         ingredientsInput = new string[] { };
         dishOn = ingredientsOn = false;

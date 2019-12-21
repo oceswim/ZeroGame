@@ -4,33 +4,47 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.UI;
+using UnityEngine.UIElements;
 
 public class handleRequest : MonoBehaviour
 {
     private const string THEURL = "http://www.recipepuppy.com/api/";
     public static string[] ingredientsNames;
     public static string dishName;
-    public GameObject errorNoMatch;
+    public GameObject errorNoMatch,scrollViewContent,sliderObject;
     private string theURL;
     public static int index;
-    private int pageCounter, pageNumber;
-    private List<string> allRecipes;
+    private int pageCounter, pageNumber,currentPage;
+    private List<string[]> pagesObtained;
+    private List<int> errors;
     private bool canRequest, done;
     public GameObject resultPrefab, pageResult,content;
     public TMP_Text pageAmount;
+    public TMP_Text[] theCurrentPageText;
     public TMP_InputField pageToSearch;
+    public Texture replacement;
+    
     // Start is called before the first frame update
-    void Start()
+    void OnEnable()
     {
 
         canRequest = true;
         done = false;
         ingredientsNames = new string[] { };
-        allRecipes = new List<string>();
-        index = pageCounter = pageNumber = 0;
+        errors = new List<int>();
+        pagesObtained = new List<string[]>();
+        index = pageCounter = pageNumber = currentPage= 0;
 
     }
-
+  
+    private void OnDisable()
+    {
+        CharacterMovement.menuOn = false;
+        Debug.Log("no menuON");
+        //clearScrollViewContent();
+        GameManager.instance.Resume();
+    }
     // Update is called once per frame
     void Update()
     {
@@ -56,15 +70,13 @@ public class handleRequest : MonoBehaviour
                     index = 0;
                     break;
             }
-
-
             StartCoroutine(GetRequest(theURL));
 
         }
         else if (done)
         {
             done = false;
-            Debug.Log(pageCounter);
+            //Debug.Log(pageCounter);
             DisplayPageResult();     
         }
     }
@@ -134,66 +146,58 @@ public class handleRequest : MonoBehaviour
                 {
                     errorNoMatchActive();
                 }
-                else
+                else if(!webRequest.isHttpError)
                 {
+                
                     string[] pageContent = webRequest.downloadHandler.text.Split('{');
                     if (pageContent.Length > 2)
                     {
                         pageCounter += 1;
-                        //TEMPORARY
-                        if (pageCounter == 20)
+                        pagesObtained.Add(pageContent);//one page per index 
+                        if(pageCounter>10)
                         {
+                            sliderObject.SetActive(false);
                             done = true;
                             canRequest = false;
                         }
+                     
                     }
                     else
                     {
                         //Debug.Log(pageCounter);
+                        sliderObject.SetActive(false);
                         done = true;
                         canRequest = false;
                     }
 
 
                 }
+                else
+                {
+                   Debug.Log("someError found page :"+ pageCounter+1);
+                    errors.Add((pageCounter+1));
+                    pageCounter++;
+                }
             }
         }
-        Debug.Log("ok");
+   
     }
-    IEnumerator GetPage(int pageNumber)
+    void GetPage(int pageNumber)
     {
         
-
-        string url = theURL + pageNumber;
-        using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
-        {
-            // Request and wait for the desired page.
-            yield return webRequest.SendWebRequest();
-            if (webRequest.isNetworkError)
-            {
-                errorNoMatchActive();
-            }
-            else
-            {
-                string[] pageContent = webRequest.downloadHandler.text.Split('{');
-                for (int i = 2; i < pageContent.Length; i++)
-                {
-                    //Debug.Log(pageContent[i]);
-                    allRecipes.Add(pageContent[i]);
-                }
-
-                DisplayResult(allRecipes);
-
-            }
-        }
-    }
+           DisplayResult(pagesObtained[pageNumber]);
+     }
+       
+    
 
     public void DisplayPageResult()
     {
         if (pageCounter > 0)
         {
             pageResult.SetActive(true);
-            pageAmount.text = "There are " + pageCounter.ToString() + " pages";
+            int actualPageAmount = pageCounter - errors.Count;
+            pageCounter = actualPageAmount-1;
+            pageAmount.text = "There are " + pageCounter.ToString()+ " pages";
         }
         else
         {
@@ -229,67 +233,170 @@ public class handleRequest : MonoBehaviour
                     string[] temporary = temporaryString[i + 1].Split('"');
                     theNewString[1] = temporary[1];
                 }
+    
 
             }
 
             input = theNewString[0] + ";" + theNewString[1];
-            Debug.Log("REFORM: "+input);
-        //DisplayResult(input[x]);
-        return input;
+            
 
+        return input;
     }
-    void DisplayResult(List<string> theRecipe)
+    string getImageURL(string theImageUrl)
     {
-        foreach(string s in theRecipe)
+        string theImgURL="";
+        //Debug.Log(theImageUrl);
+        string[] temp = theImageUrl.Split(',');
+        foreach(string s in temp)
         {
-            string newString = reformatTheString(s);
-            GameObject newResult = Instantiate(resultPrefab);
-            //instantiate the prefab
-            newResult.transform.SetParent(content.transform, false);
-            newResult.transform.localPosition = Vector3.zero;
-            //split s 
-            string[] elements = new string[] { };
-            elements = newString.Split(';');
-            foreach(Transform t in newResult.transform)
+            if(s.Contains("thumbnail"))
             {
-                if(t.name.Equals("Name"))
+                string[] theURL = s.Split('"');
+                
+                if(theURL[3].Contains("jpg"))
                 {
-                   t.gameObject.GetComponent<TMP_Text>().text = elements[0];
-                    Debug.Log("Name: "+elements[0]);
+                    theImgURL = theURL[3];
+
                 }
-                else if (t.name.Equals("Ingredients"))
+                else
                 {
-                   t.gameObject.GetComponent<TMP_Text>().text = elements[1];
-                    Debug.Log("Ing: " + elements[1]);
+                    theImgURL = "null";
                 }
             }
-
+        }
+        if (!theImgURL.Equals("null"))
+        {
+            theImgURL = theImgURL.Replace("\\", "");
+            Debug.Log("URL: " + theImgURL);
+        }
+        return theImgURL;
+    }
+    void DisplayResult(string[] theRecipe)
+    {
+       
+        for(int i =2;i<theRecipe.Length;i++) //(string s in theRecipe)
+        {
             
-            //assign name and ingredients to prefab element
+            string newString = reformatTheString(theRecipe[i]);
+            string imgURL = getImageURL(theRecipe[i]);
+            GameObject newResult = Instantiate(resultPrefab);
+             //instantiate the prefab
+             newResult.transform.SetParent(content.transform, false);
+             newResult.transform.localPosition = Vector3.zero;
+             //split s 
+             string[] elements = newString.Split(';');
+             foreach(Transform t in newResult.transform)
+             {
+                 if(t.name.Equals("Name"))
+                 {
+                    elements[0].Replace("\n", "");
+                    t.gameObject.GetComponent<TMP_Text>().text = elements[0];
+                     //Debug.Log("Name: "+elements[0]);
+                 }
+                 else if (t.name.Equals("Ingredients"))
+                 {
+                    t.gameObject.GetComponent<TMP_Text>().text = elements[1];
+                     //Debug.Log("Ing: " + elements[1]);
+                 }
+                 else if(t.name.Equals("RawImage"))
+                {
+                    if(!imgURL.Equals("null"))
+                    {
+                        Debug.Log("here");
+                        RawImage theImage = t.gameObject.GetComponent<RawImage>();
+                        StartCoroutine(getTheImageTexture(imgURL, theImage));
+                    }
+                    else
+                    {
+                        t.gameObject.GetComponent<RawImage>().texture = replacement;
+                    }
+                }
+             }
+
+             theCurrentPageText[0].text = "Results for page " + (currentPage);
+             theCurrentPageText[1].text = "Page " + (currentPage);
+             //assign name and ingredients to prefab element
         }
 
     }
   
+    IEnumerator getTheImageTexture(string url,RawImage theImg)
+    {
+        Debug.Log("THE URL: "+url);
+        UnityWebRequest request = UnityWebRequestTexture.GetTexture(url);
+        yield return request.SendWebRequest();
+        if (request.isNetworkError || request.isHttpError)
+        {
+            Debug.Log("BAD URL: " + url);
+            Debug.Log(request.error);
+        }
+        else
+        {
 
+            theImg.texture = ((DownloadHandlerTexture)request.downloadHandler).texture;
+        }
+         
+         
+    }
     public void getThePage()
     {
         if (pageToSearch.text.Length > 0)
         {
-            pageNumber = int.Parse(pageToSearch.text);
+            pageNumber = int.Parse(pageToSearch.text);//get pageNumber from input field
+            currentPage = (pageNumber+1);
         }
 
     }
-    public void startPageSearch()
+    public void StartPageSearch()
     {
         if (pageNumber < pageCounter)
         {
-            StartCoroutine(GetPage(pageNumber));
+            GetPage(pageNumber);
         }
         else
         {
             //error
         }
     }
+    public void nextPage()
+    {
+        clearScrollViewContent();
+        currentPage++;
+        if (currentPage < pageCounter)
+        {
+            GetPage(currentPage);
+        }
+        else
+        {
+            currentPage = 0;
+            GetPage(currentPage);
+        }
+    }
+    public void previousPage()
+    {
+        clearScrollViewContent();
+        currentPage--;
+        if (currentPage > 0)
+        {
+            GetPage(currentPage);
+        }
+        else
+        {
+            currentPage = (pageCounter - 1);
+            GetPage(currentPage);
+        }
+    }
+    public void StartPageSearch(int pageNum)
+    {
+        GetPage(pageNum);
+    }
+    private void clearScrollViewContent()
+    {
+        foreach (Transform child in scrollViewContent.transform)
+        {
+            //Debug.Log("destroying " + child.name);
+            GameObject.Destroy(child.gameObject);
+        }
+    }
 
-  
 }

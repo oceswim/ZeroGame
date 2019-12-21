@@ -40,6 +40,7 @@ public class ManageAppearence : MonoBehaviour
 
         if (PlayerPrefs.HasKey("saved"))
         {
+            Debug.Log("appearence load");
             ApplyModification(AppearenceDetail.BODY_MODEL, PlayerPrefs.GetInt("bodyIndex"));
             ApplyModification(AppearenceDetail.FACE_MODEL, PlayerPrefs.GetInt("faceIndex"));
             ApplyModification(AppearenceDetail.LEGS_MODEL, PlayerPrefs.GetInt("legsIndex"));
@@ -47,7 +48,7 @@ public class ManageAppearence : MonoBehaviour
         }
         else
         {
-
+            Debug.Log("appearence no load");
             ApplyModification(AppearenceDetail.BODY_MODEL, 0);
             ApplyModification(AppearenceDetail.FACE_MODEL, 0);
             ApplyModification(AppearenceDetail.LEGS_MODEL, 0);
@@ -169,6 +170,8 @@ public class ManageAppearence : MonoBehaviour
     }
     void ApplyModification(AppearenceDetail detail, int id)
     {
+        
+        
         switch (detail)
         {
 
@@ -215,7 +218,8 @@ public class ManageAppearence : MonoBehaviour
         PlayerPrefs.SetInt("legsIndex", legsIndex);
         PlayerPrefs.SetInt("armsIndex", armsIndex);
         PlayerPrefs.SetString("saved", "true");
-        //saveSystem.SavePlayer();
+        SaveSystem.SavePlayer();
+        
 
     }
     public void Revert()
@@ -230,5 +234,16 @@ public class ManageAppearence : MonoBehaviour
         ApplyModification(AppearenceDetail.LEGS_MODEL, 0);
 
 
+    }
+    public void SwitchMain()
+    {
+        if (PlayerPrefs.HasKey("saved"))
+        {
+            GameManager.instance.loadMainScene();
+        }
+        else
+        {
+            //sure want to quit without saving
+        }
     }
 }

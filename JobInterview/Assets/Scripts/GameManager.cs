@@ -1,7 +1,9 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
@@ -9,11 +11,33 @@ public class GameManager : MonoBehaviour
     public bool GameIsPaused = false;
     public bool GameHasStarted = false;
 
-    //public static int score, health, energy;
-    public RectTransform recipes, customisation;
+
+    public RectTransform recipes;
 
     void Awake()
     {
+
+        if (!File.Exists(Application.persistentDataPath + "/ThePlayerInfo.gd"))
+        {
+            PlayerPrefs.DeleteAll();
+            Debug.Log("new game");
+            Debug.Log(PlayerPrefs.GetString("saved"));
+            Game.current = new Game();
+            
+        }
+        else
+        {
+            Debug.Log("HERE");
+            Debug.Log(PlayerPrefs.GetString("saved"));
+            SaveSystem.LoadPlayer();
+            Game.current = new Game();
+            
+            Game.current.thePlayer.bodyIndex = SaveSystem.body;;
+            Game.current.thePlayer.faceIndex = SaveSystem.face;
+            Game.current.thePlayer.armsIndex = SaveSystem.arms;
+            Game.current.thePlayer.legsIndex = SaveSystem.legs;
+
+        }
 
         //Check if instance already exists
         if (instance == null)
@@ -35,10 +59,6 @@ public class GameManager : MonoBehaviour
     }
 
     //Update is called every frame.
-    void Update()
-    {
-
-    }
 
     public void Resume()
     {
@@ -52,36 +72,8 @@ public class GameManager : MonoBehaviour
 
     }
     //Call this to add the passed in Enemy to the List of Enemy objects.
-   
-    public void QuitGame()
-    {
 
-    }
-    public void FirstLoad()
-    {
-
-
-
-    }
-
-    public void Continue()
-    {
-    }
-    public void ResetHealth()
-    {
-
-    }
-
-    public void TryAgain()
-    {
-
-
-    }
-    public void Personnalisation()
-    {
-        Pause();
-        customisation.gameObject.SetActive(true);
-    }
+  
     public void RecipeResearch()
     {
         Pause();
@@ -93,6 +85,14 @@ public class GameManager : MonoBehaviour
         GameHasStarted = true;
     }
 
+    public void loadMainScene()
+    {
+        SceneManager.LoadScene("Main");
+    }
+    public void loadCustomisation()
+    {
+        SceneManager.LoadScene("AvatarCustomisation");
+    }
 }
 
     
