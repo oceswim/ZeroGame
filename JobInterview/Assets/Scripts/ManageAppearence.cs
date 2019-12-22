@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class ManageAppearence : MonoBehaviour
@@ -26,8 +27,12 @@ public class ManageAppearence : MonoBehaviour
     private GameObject[] legsAnchor;
 
     Material activeBody, activeFace, activeArms, activeLegs;
-    int materialSize, bodyIndex, faceIndex, legsIndex,armsIndex;
+    int materialSize, bodyIndex, faceIndex, legsIndex, armsIndex,outfitIndex;
     public TMP_Text[] titles;
+    private int[] indexes;
+    private int theIndex = 0;
+    private bool loadedOutfitOnce = false;
+    public GameObject loadObject;
     private void Start()
     {
         if (titles.Length > 0)
@@ -40,6 +45,10 @@ public class ManageAppearence : MonoBehaviour
 
         if (PlayerPrefs.HasKey("saved"))
         {
+            if (SceneManager.GetActiveScene().Equals("AvatarCustomisation"))
+            {
+                loadObject.SetActive(true);
+            }
             Debug.Log("appearence load");
             ApplyModification(AppearenceDetail.BODY_MODEL, PlayerPrefs.GetInt("bodyIndex"));
             ApplyModification(AppearenceDetail.FACE_MODEL, PlayerPrefs.GetInt("faceIndex"));
@@ -49,21 +58,24 @@ public class ManageAppearence : MonoBehaviour
         else
         {
             Debug.Log("appearence no load");
+
             ApplyModification(AppearenceDetail.BODY_MODEL, 0);
             ApplyModification(AppearenceDetail.FACE_MODEL, 0);
             ApplyModification(AppearenceDetail.LEGS_MODEL, 0);
             ApplyModification(AppearenceDetail.ARMS_MODEL, 0);
         }
         materialSize = Models.Length;
+        outfitIndex = Game.current.thePlayer.customisationIndex;
+        Debug.Log("OUTFIT INDEX:" + outfitIndex);
 
     }
-    
+
     public void PlusIndex(int index)//when click right arrow increases list index
     {
         switch (index)
         {
             case 1://body menu
-                if (bodyIndex == (materialSize-1))
+                if (bodyIndex == (materialSize - 1))
                 {
                     bodyIndex = 0;
                 }
@@ -170,8 +182,8 @@ public class ManageAppearence : MonoBehaviour
     }
     void ApplyModification(AppearenceDetail detail, int id)
     {
-        
-        
+
+
         switch (detail)
         {
 
@@ -180,14 +192,14 @@ public class ManageAppearence : MonoBehaviour
                 activeBody = Models[id];
                 bodyIndex = id;
                 bodyAnchor.GetComponent<SkinnedMeshRenderer>().material = activeBody;
-                
-                
+
+
                 break;
             case AppearenceDetail.FACE_MODEL:
                 activeFace = Models[id];
                 faceIndex = id;
                 faceAnchor.GetComponent<SkinnedMeshRenderer>().material = activeFace;
-                
+
 
                 break;
             case AppearenceDetail.LEGS_MODEL:
@@ -195,7 +207,7 @@ public class ManageAppearence : MonoBehaviour
                 legsIndex = id;
                 foreach (GameObject g in legsAnchor)
                 {
-                    g.GetComponent<SkinnedMeshRenderer>().material= activeLegs;
+                    g.GetComponent<SkinnedMeshRenderer>().material = activeLegs;
                 }
                 break;
             case AppearenceDetail.ARMS_MODEL:
@@ -203,7 +215,7 @@ public class ManageAppearence : MonoBehaviour
                 armsIndex = id;
                 foreach (GameObject j in armsAnchor)
                 {
-                    j.GetComponent<SkinnedMeshRenderer>().material= activeArms;
+                    j.GetComponent<SkinnedMeshRenderer>().material = activeArms;
                 }
 
                 break;
@@ -212,14 +224,17 @@ public class ManageAppearence : MonoBehaviour
     }
     public void Save()
     {
-
+        
         PlayerPrefs.SetInt("bodyIndex", bodyIndex);
         PlayerPrefs.SetInt("faceIndex", faceIndex);
         PlayerPrefs.SetInt("legsIndex", legsIndex);
         PlayerPrefs.SetInt("armsIndex", armsIndex);
+        PlayerPrefs.SetInt("customisationIndex", outfitIndex);
+        outfitIndex++;
+        Debug.Log("the index saved : " + PlayerPrefs.GetInt("customisationIndex"));
         PlayerPrefs.SetString("saved", "true");
         SaveSystem.SavePlayer();
-        
+
 
     }
     public void Revert()
@@ -228,12 +243,74 @@ public class ManageAppearence : MonoBehaviour
         PlayerPrefs.SetInt("faceIndex", 0);
         PlayerPrefs.SetInt("legsIndex", 0);
         PlayerPrefs.SetInt("armsIndex", 0);
+        PlayerPrefs.SetInt("customisationIndex", 0);
         ApplyModification(AppearenceDetail.BODY_MODEL, 0);
         ApplyModification(AppearenceDetail.FACE_MODEL, 0);
         ApplyModification(AppearenceDetail.ARMS_MODEL, 0);
         ApplyModification(AppearenceDetail.LEGS_MODEL, 0);
+        outfitIndex = 0;
 
 
+    }
+    public void LoadAppearence(string order)
+    {
+        
+        if (!loadedOutfitOnce)
+        {
+            theIndex = 0;
+            loadedOutfitOnce = true;
+        }
+        else
+        {
+            if (order.Equals("plus"))
+            {
+                if (theIndex < (PlayerPrefs.GetInt("customisationIndex")+1))
+                {
+                    theIndex += 1;
+                }
+                else
+                {
+                    theIndex = 0;
+                }
+            }
+            else if (order.Equals("minus"))
+            {
+                if (theIndex > 0)
+                {
+                    theIndex -= 1;
+                }
+                else
+                {
+                    theIndex = PlayerPrefs.GetInt("customisationIndex") - 1;
+                }
+            }
+        }
+        titles[4].text = "Outfit " + theIndex;
+        indexes = new int[4];
+        indexes = SaveSystem.LoadOutfit(theIndex);
+    
+
+        for (int i = 0; i < indexes.Length; i++)
+        {
+            switch (i)
+            {
+                case 0:
+                    ApplyModification(AppearenceDetail.BODY_MODEL, indexes[i]);
+                    break;
+                case 1:
+                    ApplyModification(AppearenceDetail.FACE_MODEL, indexes[i]);
+                    break;
+                case 2:
+                    ApplyModification(AppearenceDetail.ARMS_MODEL, indexes[i]);
+                    break;
+                case 3:
+                    ApplyModification(AppearenceDetail.LEGS_MODEL, indexes[i]);
+                    break;
+
+
+            }
+        }
+        
     }
     public void SwitchMain()
     {

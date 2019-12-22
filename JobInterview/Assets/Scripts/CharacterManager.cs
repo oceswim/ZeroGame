@@ -2,21 +2,20 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
-public class CharacterMovement : MonoBehaviour
+public class CharacterManager: MonoBehaviour
 {
     public Camera theCamera;
-    public GameObject theCursor;
+    public GameObject theCursor,theRequester,theRecipe;
     private GameObject CursorPrefab;
     public static bool startedGame;
     public Animator theCharAnimator;
     public NavMeshAgent theNavMesh;
     public static bool menuOn;
-    Vector3 destination;
+    
     private bool walking;
     void Start()
     {
-        walking = menuOn = false;
-        destination = transform.position;
+        walking = menuOn = false;  
         startedGame = true;
 
     }
@@ -55,11 +54,22 @@ public class CharacterMovement : MonoBehaviour
                         if (Input.GetMouseButtonDown(0))
                         {
                             Debug.Log("CLICK");
-                            theNavMesh.destination = hit.point;
+                            if (theNavMesh.hasPath)
+                            {
+                                theNavMesh.isStopped=true;
+                                theNavMesh.destination = hit.point;
+                                theNavMesh.isStopped = false;
+                            }
+                            else
+                            {
+                                theNavMesh.destination = hit.point;
+                            }
+
+                                Debug.Log(hit.point);
+                                theCharAnimator.SetBool("isWalking", true);
+                                walking = true;
                             
-                            Debug.Log(hit.point);
-                            theCharAnimator.SetBool("isWalking", true);
-                            walking = true;
+
 
                         }
                         if (!theNavMesh.pathPending && theNavMesh.remainingDistance < 1f && walking == true)
@@ -86,7 +96,9 @@ public class CharacterMovement : MonoBehaviour
         }
         else if (other.transform.name.Equals("Zone2"))
         {
-            GameManager.instance.RecipeResearch();
+            GameManager.instance.Pause();
+            theRecipe.SetActive(true);
+            theRequester.SetActive(true);
             menuOn = true;
         }
     }

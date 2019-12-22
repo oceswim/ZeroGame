@@ -6,7 +6,7 @@ public class SpawnPlayer : MonoBehaviour
 {
     public GameObject thePlayer;
 
-    // Start is called before the first frame update
+    //Activates our player when game starts
     void Start()
     {
         thePlayer.SetActive(true);

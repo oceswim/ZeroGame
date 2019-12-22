@@ -5,18 +5,18 @@ using UnityEngine.UI;
 
 public class loadingScript : MonoBehaviour
 {
-    private Slider theSlider;
+    private Image theImage;
     // Start is called before the first frame update
     void OnEnable()
     {
-        theSlider = transform.GetComponent<Slider>();
-        theSlider.value = 0;
+        theImage = transform.GetComponent<Image>();
+        
     }
     
     // Update is called once per frame
     void Update()
     {
         //Debug.Log(theSlider.value);
-        theSlider.value += (Time.deltaTime/10f)*100f;
+        theImage.transform.Rotate(0, 0, 2.5f);
     }
 }

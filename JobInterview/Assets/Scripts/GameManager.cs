@@ -8,15 +8,13 @@ using UnityEngine.SceneManagement;
 public class GameManager : MonoBehaviour
 {
     public static GameManager instance = null;
+    
     public bool GameIsPaused = false;
     public bool GameHasStarted = false;
 
-
-    public RectTransform recipes;
-
     void Awake()
     {
-
+      
         if (!File.Exists(Application.persistentDataPath + "/ThePlayerInfo.gd"))
         {
             PlayerPrefs.DeleteAll();
@@ -29,9 +27,9 @@ public class GameManager : MonoBehaviour
         {
             Debug.Log("HERE");
             Debug.Log(PlayerPrefs.GetString("saved"));
+
             SaveSystem.LoadPlayer();
             Game.current = new Game();
-            
             Game.current.thePlayer.bodyIndex = SaveSystem.body;;
             Game.current.thePlayer.faceIndex = SaveSystem.face;
             Game.current.thePlayer.armsIndex = SaveSystem.arms;
@@ -73,18 +71,15 @@ public class GameManager : MonoBehaviour
     }
     //Call this to add the passed in Enemy to the List of Enemy objects.
 
-  
-    public void RecipeResearch()
-    {
-        Pause();
-        recipes.gameObject.SetActive(true);
-    }
     public void Started()
     {
-        CharacterMovement.startedGame = true;
+        CharacterManager.startedGame = true;
         GameHasStarted = true;
     }
-
+    public void SwitchOffMenuBool()
+    {
+        CharacterManager.menuOn = false;
+    }
     public void loadMainScene()
     {
         SceneManager.LoadScene("Main");

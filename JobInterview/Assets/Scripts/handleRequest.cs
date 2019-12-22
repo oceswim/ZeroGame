@@ -12,12 +12,12 @@ public class handleRequest : MonoBehaviour
     private const string THEURL = "http://www.recipepuppy.com/api/";
     public static string[] ingredientsNames;
     public static string dishName;
-    public GameObject errorNoMatch,scrollViewContent,sliderObject;
+    public GameObject errorNoMatch,scrollViewContent,sliderObject,errorPageNoFound,errorPageInput;
     private string theURL;
     public static int index;
-    private int pageCounter, pageNumber,currentPage;
+    private int pageCounter, pageNumber;
+    private static int currentPage;
     private List<string[]> pagesObtained;
-    private List<int> errors;
     private bool canRequest, done;
     public GameObject resultPrefab, pageResult,content;
     public TMP_Text pageAmount;
@@ -28,11 +28,11 @@ public class handleRequest : MonoBehaviour
     // Start is called before the first frame update
     void OnEnable()
     {
-
+        CharacterManager.menuOn = true;
         canRequest = true;
         done = false;
         ingredientsNames = new string[] { };
-        errors = new List<int>();
+
         pagesObtained = new List<string[]>();
         index = pageCounter = pageNumber = currentPage= 0;
 
@@ -40,9 +40,7 @@ public class handleRequest : MonoBehaviour
   
     private void OnDisable()
     {
-        CharacterMovement.menuOn = false;
-        Debug.Log("no menuON");
-        //clearScrollViewContent();
+        pageToSearch.text = "";
         GameManager.instance.Resume();
     }
     // Update is called once per frame
@@ -137,7 +135,11 @@ public class handleRequest : MonoBehaviour
         Debug.Log("pending...");
         while (canRequest)
         {
-            string url = uri + (pageCounter + 1);
+
+            pageCounter += 1;
+            string url = uri + (pageCounter);
+
+            Debug.Log("pending..." +url);
             using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
             {
                 // Request and wait for the desired page.
@@ -152,19 +154,11 @@ public class handleRequest : MonoBehaviour
                     string[] pageContent = webRequest.downloadHandler.text.Split('{');
                     if (pageContent.Length > 2)
                     {
-                        pageCounter += 1;
                         pagesObtained.Add(pageContent);//one page per index 
-                        if(pageCounter>10)
-                        {
-                            sliderObject.SetActive(false);
-                            done = true;
-                            canRequest = false;
-                        }
-                     
                     }
                     else
                     {
-                        //Debug.Log(pageCounter);
+                        //if request goes through but page content empty
                         sliderObject.SetActive(false);
                         done = true;
                         canRequest = false;
@@ -172,46 +166,38 @@ public class handleRequest : MonoBehaviour
 
 
                 }
-                else
-                {
-                   Debug.Log("someError found page :"+ pageCounter+1);
-                    errors.Add((pageCounter+1));
-                    pageCounter++;
-                }
+             
             }
         }
    
     }
     void GetPage(int pageNumber)
     {
-        
-           DisplayResult(pagesObtained[pageNumber]);
-     }
-       
-    
 
+        if (pageNumber < pageCounter && pageNumber >= 0)
+        {
+            DisplayResult(pagesObtained[(pageNumber)]);
+        }
+  
+     }
     public void DisplayPageResult()
     {
-        if (pageCounter > 0)
+        if (pagesObtained.Count > 0)
         {
             pageResult.SetActive(true);
-            int actualPageAmount = pageCounter - errors.Count;
-            pageCounter = actualPageAmount-1;
+            int actualPageAmount = pagesObtained.Count;
+            pageCounter = actualPageAmount;
             pageAmount.text = "There are " + pageCounter.ToString()+ " pages";
         }
         else
         {
-            //error;
+            errorPageNoFound.SetActive(true);
+            gameObject.SetActive(false);//deactivates requester to reset research
+
         }
     }
     void errorNoMatchActive()
     {
-
-        float timer = 0;
-        while (timer < 1f)
-        {
-            timer += Time.deltaTime;
-        }
         errorNoMatch.SetActive(true);
 
 
@@ -273,8 +259,8 @@ public class handleRequest : MonoBehaviour
     }
     void DisplayResult(string[] theRecipe)
     {
-       
-        for(int i =2;i<theRecipe.Length;i++) //(string s in theRecipe)
+        Debug.Log("CURRENT PAGE = " + currentPage);
+        for (int i =2;i<theRecipe.Length;i++) //(string s in theRecipe)
         {
             
             string newString = reformatTheString(theRecipe[i]);
@@ -289,7 +275,9 @@ public class handleRequest : MonoBehaviour
              {
                  if(t.name.Equals("Name"))
                  {
-                    elements[0].Replace("\n", "");
+                    elements[0]=elements[0].Replace("\n", "");
+                    elements[0]=elements[0].Replace("\t", "");
+                    elements[0]=elements[0].Replace("\r", "");
                     t.gameObject.GetComponent<TMP_Text>().text = elements[0];
                      //Debug.Log("Name: "+elements[0]);
                  }
@@ -302,7 +290,7 @@ public class handleRequest : MonoBehaviour
                 {
                     if(!imgURL.Equals("null"))
                     {
-                        Debug.Log("here");
+                        
                         RawImage theImage = t.gameObject.GetComponent<RawImage>();
                         StartCoroutine(getTheImageTexture(imgURL, theImage));
                     }
@@ -313,8 +301,8 @@ public class handleRequest : MonoBehaviour
                 }
              }
 
-             theCurrentPageText[0].text = "Results for page " + (currentPage);
-             theCurrentPageText[1].text = "Page " + (currentPage);
+             theCurrentPageText[0].text = "Results for page " + ((currentPage+1));
+             theCurrentPageText[1].text = "Page " + ((currentPage+1));
              //assign name and ingredients to prefab element
         }
 
@@ -338,26 +326,35 @@ public class handleRequest : MonoBehaviour
          
          
     }
-    public void getThePage()
+    public void getThePageFromUser()
     {
         if (pageToSearch.text.Length > 0)
         {
             pageNumber = int.Parse(pageToSearch.text);//get pageNumber from input field
-            currentPage = (pageNumber+1);
+            if (pageNumber > 0 && pageNumber <= pageCounter)
+            {
+                pageNumber = pageNumber - 1;
+                currentPage = pageNumber;
+                Debug.Log("CURRENT PAGE = " + currentPage);
+            }
+            else
+            {
+                errorPageInput.SetActive(true);
+            }
+           
+        }
+        else
+        {
+            errorPageInput.SetActive(true);
         }
 
     }
     public void StartPageSearch()
     {
-        if (pageNumber < pageCounter)
-        {
-            GetPage(pageNumber);
-        }
-        else
-        {
-            //error
-        }
-    }
+      
+        GetPage(pageNumber);
+     
+    }//after user input the page he wants to consult use this method
     public void nextPage()
     {
         clearScrollViewContent();
@@ -376,20 +373,20 @@ public class handleRequest : MonoBehaviour
     {
         clearScrollViewContent();
         currentPage--;
-        if (currentPage > 0)
+        if (currentPage>=0)
         {
             GetPage(currentPage);
         }
         else
         {
-            currentPage = (pageCounter - 1);
+            currentPage = (pageCounter-1);
             GetPage(currentPage);
         }
     }
     public void StartPageSearch(int pageNum)
     {
-        GetPage(pageNum);
-    }
+        GetPage(pageNum);//once user entered proper page number we can start fetching the page he asks for
+    }//when user clicks on previous or next button, use this method
     private void clearScrollViewContent()
     {
         foreach (Transform child in scrollViewContent.transform)
