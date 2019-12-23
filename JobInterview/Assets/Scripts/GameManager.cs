@@ -17,17 +17,12 @@ public class GameManager : MonoBehaviour
         if (!File.Exists(Application.persistentDataPath + "/ThePlayerInfo.gd"))
         {
             PlayerPrefs.DeleteAll();
-            Debug.Log("new game");
-            Debug.Log(PlayerPrefs.GetString("saved"));
             Game.current = new Game();
             
         }
         //if file found, create a new game and load saved information
         else
         {
-            Debug.Log("HERE");
-            Debug.Log(PlayerPrefs.GetString("saved"));
-
             SaveSystem.LoadPlayer();
             Game.current = new Game();
             Game.current.thePlayer.bodyIndex = SaveSystem.body;;

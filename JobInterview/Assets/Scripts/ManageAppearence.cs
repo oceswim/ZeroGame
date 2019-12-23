@@ -51,9 +51,11 @@ public class ManageAppearence : MonoBehaviour
             titles[3].text = "Arms";
         }
         //if outfit loaded previously, we load it
+        
         if (PlayerPrefs.HasKey("saved"))
         {
-            if (SceneManager.GetActiveScene().Equals("AvatarCustomisation"))
+           
+            if (SceneManager.GetActiveScene().name.Equals("AvatarCustomisation"))
             {
                 loadObject.SetActive(true);
             }
