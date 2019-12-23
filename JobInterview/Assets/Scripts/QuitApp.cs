@@ -11,6 +11,7 @@ public class QuitApp : MonoBehaviour
         if (Input.GetKey("escape"))
         {
             GameManager.instance.Pause();
+            CharacterManager.menuOn = true;
             QuitQuestion.SetActive(true);
         }
     }
