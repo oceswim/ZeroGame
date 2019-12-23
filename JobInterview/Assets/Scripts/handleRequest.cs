@@ -1,31 +1,38 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
-using UnityEngine.UIElements;
 
-public class handleRequest : MonoBehaviour
+
+/*
+ * 
+ * Allows to send HTML request based on user input 
+ * 
+ * 
+ */
+public class HandleRequest : MonoBehaviour
 {
-    private const string THEURL = "http://www.recipepuppy.com/api/";
-    public static string[] ingredientsNames;
-    public static string dishName;
-    public GameObject errorNoMatch,scrollViewContent,sliderObject,errorPageNoFound,errorPageInput;
-    private string theURL;
-    public static int index;
-    private int pageCounter, pageNumber;
+    private const string THEURL = "http://www.recipepuppy.com/api/";//this part of the URL is constant
+    private string theURL;//the variable part of the URL with either ingredients and dish name or one of the other
+    private int pageCounter, pageNumber;//allows to keep track of the pages fetched
     private static int currentPage;
-    private List<string[]> pagesObtained;
+    private List<string[]> pagesObtained;//the list of each page content obtained stored as lists of string. Each string is a recipe and each string[] is a page
     private bool canRequest, done;
-    public GameObject resultPrefab, pageResult,content;
-    public TMP_Text pageAmount;
+
+    public static int index;
+    public GameObject resultPrefab, pageResult,content;//the different gameObject used in the results page
+    public TMP_Text pageAmount,pendingResult;
     public TMP_Text[] theCurrentPageText;
     public TMP_InputField pageToSearch;
     public Texture replacement;
-    
-    // Start is called before the first frame update
+    public static string[] ingredientsNames;
+    public static string dishName;
+    public GameObject errorNoMatch, scrollViewContent, loadingObject, errorPageNoFound, errorPageInput;//the different panels used in the search process
+
+    //Using OnEnable to be able to reset the search parameters each time
     void OnEnable()
     {
         CharacterManager.menuOn = true;
@@ -38,6 +45,7 @@ public class handleRequest : MonoBehaviour
 
     }
   
+    //clears out the input field and resume the paused game
     private void OnDisable()
     {
         pageToSearch.text = "";
@@ -48,22 +56,22 @@ public class handleRequest : MonoBehaviour
     {
         if (index > 0)
         {
-            switch (index)
+            switch (index)//depending on what the user input, a different getRequestInput method call is done
             {
                 case 1://search with ingredients only
-                    theURL = getRequestInput(ingredientsNames);
+                    theURL = GetRequestInput(ingredientsNames);
                     theURL += "&p=";
                     index = 0;//getting input info once
                     break;
                 case 2://search with dish name only
                     Debug.Log("dish");
-                    theURL = getRequestInput(dishName);
+                    theURL = GetRequestInput(dishName);
                     theURL += "&p=";
                     index = 0;
                     break;
                 case 3://search with both
                     Debug.Log("both");
-                    theURL=  getRequestInput(ingredientsNames, dishName);
+                    theURL=  GetRequestInput(ingredientsNames, dishName);
                     theURL += "&p=";
                     index = 0;
                     break;
@@ -71,19 +79,19 @@ public class handleRequest : MonoBehaviour
             StartCoroutine(GetRequest(theURL));
 
         }
-        else if (done)
+        else if (done)//if no more pages to fetch
         {
             done = false;
-            //Debug.Log(pageCounter);
             DisplayPageResult();     
         }
     }
 
-    public string getRequestInput(string[] ingredients)
+    //allows to set up URL with ingredients only
+    public string GetRequestInput(string[] ingredients)
     {
         string theIngredients = "";
-   
         string url;
+
         for (int i = 0; i < ingredients.Length; i++)
         {
             if (i == (ingredients.Length - 1))
@@ -100,7 +108,9 @@ public class handleRequest : MonoBehaviour
         url = THEURL + "?i=" + theIngredients;
         return url;
     }
-    public string getRequestInput(string[] ingredients, string dish)
+
+    //allows to set up URL with both ingredients and dish name
+    public string GetRequestInput(string[] ingredients, string dish)
     {
         string theIngredients = "";
         string url;
@@ -121,7 +131,8 @@ public class handleRequest : MonoBehaviour
         Debug.Log(url);
         return url;
     }
-    public string getRequestInput(string dish)
+    //allows to set up URL with dish name only
+    public string GetRequestInput(string dish)
     {
         string url;
         dishName = dish;
@@ -130,36 +141,39 @@ public class handleRequest : MonoBehaviour
         return url;
 
     }
+    //sends HTML request with a proper URL based on user input
     IEnumerator GetRequest(string uri)
     {
         Debug.Log("pending...");
+        //we request as long as the page returned as some content
         while (canRequest)
         {
 
             pageCounter += 1;
             string url = uri + (pageCounter);
 
-            Debug.Log("pending..." +url);
+            pendingResult.text = pagesObtained.Count + " results";
             using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
             {
                 // Request and wait for the desired page.
                 yield return webRequest.SendWebRequest();
                 if (webRequest.isNetworkError)
                 {
-                    errorNoMatchActive();
+                    ErrorNoMatchActive();
                 }
                 else if(!webRequest.isHttpError)
                 {
                 
                     string[] pageContent = webRequest.downloadHandler.text.Split('{');
+                    //the first two element of the page content are not recipes but just titles so they're ignored
                     if (pageContent.Length > 2)
                     {
-                        pagesObtained.Add(pageContent);//one page per index 
+                        pagesObtained.Add(pageContent);//one page per index of pagesObtained
                     }
                     else
                     {
-                        //if request goes through but page content empty
-                        sliderObject.SetActive(false);
+                        //if page content empty we end the search
+                        loadingObject.SetActive(false);
                         done = true;
                         canRequest = false;
                     }
@@ -171,6 +185,8 @@ public class handleRequest : MonoBehaviour
         }
    
     }
+
+    //once search successful and pages stored in pagesobtained list, we can fetch a specific page with this method
     void GetPage(int pageNumber)
     {
 
@@ -180,6 +196,8 @@ public class handleRequest : MonoBehaviour
         }
   
      }
+
+    //displays how many pages were obtained by the search (excluding pages with errors)
     public void DisplayPageResult()
     {
         if (pagesObtained.Count > 0)
@@ -196,15 +214,18 @@ public class handleRequest : MonoBehaviour
 
         }
     }
-    void errorNoMatchActive()
+    //if no match with our request
+    void ErrorNoMatchActive()
     {
         errorNoMatch.SetActive(true);
 
-
     }
-    string reformatTheString(string input)
+    //ingredients and recipe title needs reformating before being displayed
+    string ReformatTheString(string input)
     {
-        string[] theNewString = new string[2];
+        string[] theNewString = new string[2];//contains the recipe title and ingredients list (separated by commas)
+
+        //splits the string obtained by HTML request to fetch the recipe title and ingredients list
         string[] temporaryString = input.Split(':');
             for (int i = 0; i < temporaryString.Length; i++)
             {
@@ -228,10 +249,11 @@ public class handleRequest : MonoBehaviour
 
         return input;
     }
-    string getImageURL(string theImageUrl)
+
+    //if image URL exists we fetch it
+    string GetImageURL(string theImageUrl)
     {
         string theImgURL="";
-        //Debug.Log(theImageUrl);
         string[] temp = theImageUrl.Split(',');
         foreach(string s in temp)
         {
@@ -253,18 +275,19 @@ public class handleRequest : MonoBehaviour
         if (!theImgURL.Equals("null"))
         {
             theImgURL = theImgURL.Replace("\\", "");
-            Debug.Log("URL: " + theImgURL);
         }
         return theImgURL;
     }
+
+    //displays the results properly
     void DisplayResult(string[] theRecipe)
     {
         Debug.Log("CURRENT PAGE = " + currentPage);
         for (int i =2;i<theRecipe.Length;i++) //(string s in theRecipe)
         {
             
-            string newString = reformatTheString(theRecipe[i]);
-            string imgURL = getImageURL(theRecipe[i]);
+            string newString = ReformatTheString(theRecipe[i]);
+            string imgURL = GetImageURL(theRecipe[i]);
             GameObject newResult = Instantiate(resultPrefab);
              //instantiate the prefab
              newResult.transform.SetParent(content.transform, false);
@@ -275,24 +298,23 @@ public class handleRequest : MonoBehaviour
              {
                  if(t.name.Equals("Name"))
                  {
-                    elements[0]=elements[0].Replace("\n", "");
-                    elements[0]=elements[0].Replace("\t", "");
-                    elements[0]=elements[0].Replace("\r", "");
+                    //initialise the recipe name and clean it
                     t.gameObject.GetComponent<TMP_Text>().text = elements[0];
-                     //Debug.Log("Name: "+elements[0]);
-                 }
+                    Debug.Log(t.gameObject.GetComponent<TMP_Text>().text);
+                    t.gameObject.GetComponent<TMP_Text>().text = CleanString(t.gameObject.GetComponent<TMP_Text>().text);
+                    Debug.Log(t.gameObject.GetComponent<TMP_Text>().text);
+                }
                  else if (t.name.Equals("Ingredients"))
                  {
-                    t.gameObject.GetComponent<TMP_Text>().text = elements[1];
-                     //Debug.Log("Ing: " + elements[1]);
+                    t.gameObject.GetComponent<TMP_Text>().text = elements[1];  
                  }
                  else if(t.name.Equals("RawImage"))
                 {
+                    //if image URL fetched successfully we fetch the image otherwise attribute image replacement
                     if(!imgURL.Equals("null"))
                     {
-                        
                         RawImage theImage = t.gameObject.GetComponent<RawImage>();
-                        StartCoroutine(getTheImageTexture(imgURL, theImage));
+                        StartCoroutine(GetTheImageTexture(imgURL, theImage));
                     }
                     else
                     {
@@ -301,16 +323,43 @@ public class handleRequest : MonoBehaviour
                 }
              }
 
+             //display results on the results page
              theCurrentPageText[0].text = "Results for page " + ((currentPage+1));
              theCurrentPageText[1].text = "Page " + ((currentPage+1));
-             //assign name and ingredients to prefab element
+            
         }
 
     }
-  
-    IEnumerator getTheImageTexture(string url,RawImage theImg)
+    //cleans the string from the new lines characters and the onpening/closing 
+    private string CleanString(string toClean)
     {
-        Debug.Log("THE URL: "+url);
+        string pattern1 = "\\n";
+        string pattern2 = "\\r";
+        string pattern3 = "\\t";
+        string pattern4 = "\"";
+        if (toClean.Contains(pattern1))
+        {
+            toClean = toClean.Replace(pattern1, "");
+        }
+        if (toClean.Contains(pattern2))
+        {
+            toClean = toClean.Replace(pattern2, "");
+        }
+        if (toClean.Contains(pattern3))
+        {
+            toClean = toClean.Replace(pattern3, "");
+        }
+        if (toClean.Contains(pattern4))
+        {
+            toClean = toClean.Replace(pattern4, "");
+        }
+        
+        return toClean;
+    }
+    //each recipe has a thumbnail linked to an URL, if thumbnail exist we fetch it
+    IEnumerator GetTheImageTexture(string url,RawImage theImg)
+    {
+       
         UnityWebRequest request = UnityWebRequestTexture.GetTexture(url);
         yield return request.SendWebRequest();
         if (request.isNetworkError || request.isHttpError)
@@ -326,11 +375,12 @@ public class handleRequest : MonoBehaviour
          
          
     }
-    public void getThePageFromUser()
+    //get pageNumber from page input field
+    public void GetThePageFromUser()
     {
         if (pageToSearch.text.Length > 0)
         {
-            pageNumber = int.Parse(pageToSearch.text);//get pageNumber from input field
+            pageNumber = int.Parse(pageToSearch.text);
             if (pageNumber > 0 && pageNumber <= pageCounter)
             {
                 pageNumber = pageNumber - 1;
@@ -349,15 +399,21 @@ public class handleRequest : MonoBehaviour
         }
 
     }
+
+    //once page input from user checked, fetch a page for the first time
     public void StartPageSearch()
     {
       
+        //pageNumber initialised before hand in getThePageFromUser
         GetPage(pageNumber);
      
-    }//after user input the page he wants to consult use this method
-    public void nextPage()
+    }
+
+    //fetches next page, if index too big switch back to beginning of list
+    public void NextPage()
     {
-        clearScrollViewContent();
+        //clears the layout before fetching a new page
+        ClearScrollViewContent();
         currentPage++;
         if (currentPage < pageCounter)
         {
@@ -369,9 +425,12 @@ public class handleRequest : MonoBehaviour
             GetPage(currentPage);
         }
     }
-    public void previousPage()
+
+    //fetches previous page if proper index, otherwise switch back to end of list
+    public void PreviousPage()
     {
-        clearScrollViewContent();
+        //clears layout before fetching a new page
+        ClearScrollViewContent();
         currentPage--;
         if (currentPage>=0)
         {
@@ -383,15 +442,18 @@ public class handleRequest : MonoBehaviour
             GetPage(currentPage);
         }
     }
+    
+    //method used after user clicks on previous/next button on result page
     public void StartPageSearch(int pageNum)
     {
-        GetPage(pageNum);//once user entered proper page number we can start fetching the page he asks for
-    }//when user clicks on previous or next button, use this method
-    private void clearScrollViewContent()
+        GetPage(pageNum);
+    }
+
+    //destroys the current result page layout
+    private void ClearScrollViewContent()
     {
         foreach (Transform child in scrollViewContent.transform)
-        {
-            //Debug.Log("destroying " + child.name);
+        { 
             GameObject.Destroy(child.gameObject);
         }
     }

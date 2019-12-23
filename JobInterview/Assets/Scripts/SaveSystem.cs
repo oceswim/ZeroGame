@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using UnityEngine;
@@ -7,7 +6,7 @@ using UnityEngine;
 public static class SaveSystem 
 {
    
-    //
+    //allows to store the outfits created to load them as needed
     public static List<PlayerData> saved = new List<PlayerData>();
     public static int body, face, legs, arms,customisationIndex;
     
@@ -19,7 +18,6 @@ public static class SaveSystem
         Game.current.thePlayer.legsIndex = PlayerPrefs.GetInt("legsIndex");
         Game.current.thePlayer.customisationIndex = saved.Count;
 
-        Debug.Log("Current numbers : "+Game.current.thePlayer.bodyIndex+" + " + Game.current.thePlayer.faceIndex + " + " + Game.current.thePlayer.legsIndex + " + " + Game.current.thePlayer.armsIndex +"+ index"+ Game.current.thePlayer.customisationIndex);
         BinaryFormatter formatter = new BinaryFormatter();
         string path = Application.persistentDataPath + "/ThePlayerInfo.gd";
         FileStream file = File.Create(path);
@@ -32,16 +30,14 @@ public static class SaveSystem
             customisationIndex = Game.current.thePlayer.customisationIndex
             
         };
-        saved.Add(data); 
-        foreach (PlayerData s in saved)
-        {
-            Debug.Log("Saved At index :" + s.customisationIndex + " bodyindex :" + s.bodyIndex + "faceindex: " + s.faceIndex + "armsIndex " + s.armsIndex + "legsIndex " + s.legsIndex);
-        }
+        //adds newly saved outfit to our file to be loadable later
+        saved.Add(data);
         formatter.Serialize(file, saved);//converts player data to binary file
         file.Close();
 
     }
 
+    //loads the poper outfit based on index given and fetches outfit in the 'saved' List of playerdata
     public static int[] LoadOutfit(int index)
     {
         int[] theIndexes=new int[4];
@@ -54,6 +50,8 @@ public static class SaveSystem
         return theIndexes;
 
     }
+
+    //fetches the file and loads its data
     public static void LoadPlayer()
     {
         string path = Application.persistentDataPath + "/ThePlayerInfo.gd";
@@ -64,16 +62,13 @@ public static class SaveSystem
             FileStream stream = File.Open(path, FileMode.Open);
             saved = (List<PlayerData>)formatter.Deserialize(stream);
             stream.Close();
-            
-            body = saved[(saved.Count - 1)].bodyIndex;//load the player with the latest saved outfit
+
+            //load the player with the latest saved outfit
+            body = saved[(saved.Count - 1)].bodyIndex;
             face = saved[(saved.Count - 1)].faceIndex;
             legs = saved[(saved.Count - 1)].legsIndex;
             arms = saved[(saved.Count - 1)].armsIndex;
             customisationIndex = saved[(saved.Count - 1)].customisationIndex;
-            foreach (PlayerData s in saved)
-            {
-                Debug.Log("Loaded: At index :" + s.customisationIndex + " bodyindex :" + s.bodyIndex + "faceindex: " + s.faceIndex + "armsIndex " + s.armsIndex + "legsIndex " + s.legsIndex+" saved.con"+saved.Count);
-            }
         }
         else
         {

@@ -1,29 +1,33 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using TMPro;
+﻿using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
-public class handleInputs : MonoBehaviour
+/*
+ * Handles the input from the user who wants to search 
+ * a recipe either by ingredients list or with a dish name or both.
+ */ 
+public class HandleInputs : MonoBehaviour
 {
     public TMP_InputField ingredients, dishes;
     private bool dishOn, ingredientsOn;
     private string[] ingredientsNames;
     private string dishInput;
-    public GameObject errorInput, errorIngredient, errorDish;
-    // Start is called before the first frame update
+    public GameObject errorInput, errorIngredient, errorDish;//errors related to inputs
+
+    /*
+     * Using onenable and ondisable in order to reset properly the inputs fields
+     */
     void OnEnable()
     {
         ingredientsNames = new string[] { };
         dishInput = "";
-        dishOn = ingredientsOn = false;
+        dishOn = ingredientsOn = false;//recognizes if the search done with ingredients or dishes only or both
     }
     private void OnDisable()
     {
         ingredients.text = dishes.text = "";
     }
 
-    // Update is called once per frame
+    //called if ingredients entered and checks if commas entered
     public void IngredientsInput()
     {
         int errorCount = 0;
@@ -62,6 +66,8 @@ public class handleInputs : MonoBehaviour
             errorCount = 0;//since error active, reset error counter
         }
     }
+
+    //called if dish name entered and checks if a single name is entered
     public void DishNameInput()
     {
         int errorCount = 0;
@@ -74,22 +80,20 @@ public class handleInputs : MonoBehaviour
                 errorCount++;
                 errorDish.SetActive(true);
             }
-            Debug.Log("the dish: " + dishInput);
         }
         else
         {
             errorCount++;
             errorDish.SetActive(true);
         }
-        if(errorCount==0)
+        if(errorCount==0)//if no error
         {
             SetBoolDish();
         }
-        else
-        {
-            errorCount = 0;
-        }
+       
     }
+
+    //splits the ingredients into a list using the commas
     private string[] SplitInput(string theInputString)
     {
         string[] toReturn;
@@ -98,6 +102,9 @@ public class handleInputs : MonoBehaviour
 
         return toReturn;
     }
+
+
+    //allows to keep track if ingredients are used or not
     public void SetBoolIngredient()
     {
         if (ingredientsOn)
@@ -109,6 +116,7 @@ public class handleInputs : MonoBehaviour
             ingredientsOn = true;
         }
     }
+    //allows to keep track if dishes are used or not
     public void SetBoolDish()
     {
         if (dishOn)
@@ -120,15 +128,17 @@ public class handleInputs : MonoBehaviour
             dishOn = true;
         }
     }
+
+    //once proper input recognised sends info to handlerequest based on the input received
     public void ReadyForRequest()
     {
         Debug.Log(dishOn + " " + ingredientsOn);
         if (ingredientsOn && dishOn)
         {
             
-            handleRequest.ingredientsNames = ingredientsNames;
-            handleRequest.dishName = dishInput;
-            handleRequest.index = 3;
+            HandleRequest.ingredientsNames = ingredientsNames;
+            HandleRequest.dishName = dishInput;
+            HandleRequest.index = 3;
 
         }
         else if (ingredientsOn && !dishOn)
@@ -137,14 +147,14 @@ public class handleInputs : MonoBehaviour
             {
                 Debug.Log(s);
             }
-            handleRequest.ingredientsNames = ingredientsNames;
-            handleRequest.index = 1;
+            HandleRequest.ingredientsNames = ingredientsNames;
+            HandleRequest.index = 1;
             
         }
         else if(dishOn && !ingredientsOn)
         {
-            handleRequest.dishName = dishInput;
-            handleRequest.index = 2;
+            HandleRequest.dishName = dishInput;
+            HandleRequest.index = 2;
         }
         else if(!dishOn && !ingredientsOn)
         {

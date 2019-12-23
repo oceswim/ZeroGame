@@ -1,20 +1,19 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.IO;
-using TMPro;
+﻿using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
+    //allows to create a single instance of the game manager per game
     public static GameManager instance = null;
-    
     public bool GameIsPaused = false;
     public bool GameHasStarted = false;
 
+
     void Awake()
     {
-      
+
+      // if no file saved create a brand new game
         if (!File.Exists(Application.persistentDataPath + "/ThePlayerInfo.gd"))
         {
             PlayerPrefs.DeleteAll();
@@ -23,6 +22,7 @@ public class GameManager : MonoBehaviour
             Game.current = new Game();
             
         }
+        //if file found, create a new game and load saved information
         else
         {
             Debug.Log("HERE");
@@ -46,18 +46,22 @@ public class GameManager : MonoBehaviour
         //If instance already exists and it's not this:
         else if (instance != this)
 
-            //Then destroy this. This enforces our singleton pattern, meaning there can only ever be one instance of a GameManager.
+            //Then destroy this. Enforces singleton pattern: here can only ever be one instance of a GameManager.
             Destroy(gameObject);
 
         //Sets this to not be destroyed when reloading scene
         DontDestroyOnLoad(gameObject);
 
-        //Adds new instance of jewel
-
     }
-
-    //Update is called every frame.
-
+    //before app exits, save the game instance
+    public void OnApplicationQuit()
+    {
+        SaveSystem.SavePlayer();
+    }
+    public void Quit()
+    {
+        Application.Quit();
+    }
     public void Resume()
     {
         GameIsPaused = false;
@@ -69,22 +73,21 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 0f;
 
     }
-    //Call this to add the passed in Enemy to the List of Enemy objects.
-
     public void Started()
     {
         CharacterManager.startedGame = true;
         GameHasStarted = true;
     }
+    //allows to keep consistency in main scene to control the character properly
     public void SwitchOffMenuBool()
     {
         CharacterManager.menuOn = false;
     }
-    public void loadMainScene()
+    public void LoadMainScene()
     {
         SceneManager.LoadScene("Main");
     }
-    public void loadCustomisation()
+    public void LoadCustomisation()
     {
         SceneManager.LoadScene("AvatarCustomisation");
     }

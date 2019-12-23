@@ -1,9 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using TMPro;
+﻿using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 public class ManageAppearence : MonoBehaviour
 {
@@ -15,8 +12,13 @@ public class ManageAppearence : MonoBehaviour
         LEGS_MODEL
     }
 
+    //the different materials usable for avatar customisation
     [SerializeField]
     private Material[] Models;
+
+    /*
+     * The different anchors to which the specific material will be applied to
+     */
     [SerializeField]
     private GameObject bodyAnchor;
     [SerializeField]
@@ -26,12 +28,18 @@ public class ManageAppearence : MonoBehaviour
     [SerializeField]
     private GameObject[] legsAnchor;
 
+    //allows to keep track of the current applied material to each body part
     Material activeBody, activeFace, activeArms, activeLegs;
+    //keeps track of the current index of the material applied to each bpdy part
     int materialSize, bodyIndex, faceIndex, legsIndex, armsIndex,outfitIndex;
+    //the titles of the customisation canvas
     public TMP_Text[] titles;
+    //the list of the materials from one outfit to be loaded 
     private int[] indexes;
     private int theIndex = 0;
+    //allows to check if outfit loaded or not, if so, can increment/decrement the indexes
     private bool loadedOutfitOnce = false;
+    //the outfit loading panel 
     public GameObject loadObject;
     private void Start()
     {
@@ -42,14 +50,13 @@ public class ManageAppearence : MonoBehaviour
             titles[2].text = "Legs";
             titles[3].text = "Arms";
         }
-
+        //if outfit loaded previously, we load it
         if (PlayerPrefs.HasKey("saved"))
         {
             if (SceneManager.GetActiveScene().Equals("AvatarCustomisation"))
             {
                 loadObject.SetActive(true);
             }
-            Debug.Log("appearence load");
             ApplyModification(AppearenceDetail.BODY_MODEL, PlayerPrefs.GetInt("bodyIndex"));
             ApplyModification(AppearenceDetail.FACE_MODEL, PlayerPrefs.GetInt("faceIndex"));
             ApplyModification(AppearenceDetail.LEGS_MODEL, PlayerPrefs.GetInt("legsIndex"));
@@ -57,16 +64,14 @@ public class ManageAppearence : MonoBehaviour
         }
         else
         {
-            Debug.Log("appearence no load");
-
             ApplyModification(AppearenceDetail.BODY_MODEL, 0);
             ApplyModification(AppearenceDetail.FACE_MODEL, 0);
             ApplyModification(AppearenceDetail.LEGS_MODEL, 0);
             ApplyModification(AppearenceDetail.ARMS_MODEL, 0);
         }
         materialSize = Models.Length;
+        //allows to load the proper outfit
         outfitIndex = Game.current.thePlayer.customisationIndex;
-        Debug.Log("OUTFIT INDEX:" + outfitIndex);
 
     }
 
@@ -180,9 +185,10 @@ public class ManageAppearence : MonoBehaviour
 
         }
     }
+
+    //applies corresponding modification based on selected index
     void ApplyModification(AppearenceDetail detail, int id)
     {
-
 
         switch (detail)
         {
@@ -222,9 +228,9 @@ public class ManageAppearence : MonoBehaviour
 
         }
     }
+    //saves the current outfit and appearence
     public void Save()
     {
-        
         PlayerPrefs.SetInt("bodyIndex", bodyIndex);
         PlayerPrefs.SetInt("faceIndex", faceIndex);
         PlayerPrefs.SetInt("legsIndex", legsIndex);
@@ -237,6 +243,7 @@ public class ManageAppearence : MonoBehaviour
 
 
     }
+   //reverts to initial outfit
     public void Revert()
     {
         PlayerPrefs.SetInt("bodyIndex", 0);
@@ -252,6 +259,7 @@ public class ManageAppearence : MonoBehaviour
 
 
     }
+    //if outfits saved previously, can load them
     public void LoadAppearence(string order)
     {
         
@@ -264,7 +272,7 @@ public class ManageAppearence : MonoBehaviour
         {
             if (order.Equals("plus"))
             {
-                if (theIndex < (PlayerPrefs.GetInt("customisationIndex")+1))
+                if (theIndex < SaveSystem.saved.Count-1)
                 {
                     theIndex += 1;
                 }
@@ -281,11 +289,11 @@ public class ManageAppearence : MonoBehaviour
                 }
                 else
                 {
-                    theIndex = PlayerPrefs.GetInt("customisationIndex") - 1;
+                    theIndex = SaveSystem.saved.Count - 1;
                 }
             }
         }
-        titles[4].text = "Outfit " + theIndex;
+        titles[4].text = "Outfit " + (theIndex+1);
         indexes = new int[4];
         indexes = SaveSystem.LoadOutfit(theIndex);
     
@@ -312,11 +320,13 @@ public class ManageAppearence : MonoBehaviour
         }
         
     }
+
+    //switching back to main scene
     public void SwitchMain()
     {
         if (PlayerPrefs.HasKey("saved"))
         {
-            GameManager.instance.loadMainScene();
+            GameManager.instance.LoadMainScene();
         }
         else
         {
